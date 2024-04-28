@@ -289,26 +289,13 @@ class VIDE_RK_method(RK_method):
             return res
         
         def Y_Z_f(h):
-            last_y=Y[-1]
-            last_t=X[-1]
-            step_const_x = last_t +1/2 * h
-            F1=integration_K(last_t)
-            F=integration_K(step_const_x)
-            Y1 = last_y
-            Z1=0
-            f2=f(last_t, Y1, F1+Z1)
-            Y2=last_y+1/2*h*f2
-            Z2=1/2*h*K(step_const_x, s=last_t, y=Y1)
-            f3=f(x=step_const_x, y=Y2, F_=F+Z2)
-            Y3=last_y+1/2*h*f3
-            Z3=1/2*h*K(x=step_const_x, s=step_const_x, y=Y2)
-            f4=f(x=step_const_x, y=Y3, F_=F+Z3)
-            Y4=last_y+h*f4
-            Z4=h*K(x=last_t +h, s=step_const_x, y=Y3)
-            f_=[f2, 
-                f3, 
-                f4, 
-                f(x=last_t+h, y=Y4, F_=integration_K(last_t+h)+Z4)]
+            Y_=[]
+            Z_=[]
+            F_=[integration_K(X[-1]+self.c[i]*h) for i in range(self.s)]
+            for i in range(self.s):
+                Y_.append(Y[-1]+sum([self.A[i][j]*f(X[-1]+self.c[j]*h,Y_[j],F_[j]+Z_[j]) for j in range(i)]))
+                Z_.append(h*sum([self.A[i][j]*K(X[-1]+self.d[j]*h,X[-1]+self.c[j]*h,Y_[j]) for j in range(i)]))
+            f_=[f(X[-1]+self.c[i]*h,Y_[i],F_[i]+Z_[i]) for i in range(self.s)]
             return(f_)
 
         X=[x0]
