@@ -28,7 +28,7 @@ class RK_method:
     
     def set_b_teta(self, b_teta):
         for b in b_teta:
-            assert b(1).isdigit(), "b_theta shuld be an array of functions"
+            assert isinstance(b(1), (int, float)), "b_theta shuld be an array of functions"
         self.b_teta=b_teta
     
     def b_teta_calc(self):
@@ -232,16 +232,17 @@ class VIDE_RK_method(RK_method):
         self.e=e
         self.w=w
         self.d=d
-        self.method_param_check()
+        self.method_param_check_()
 
-    def method_param_check(self):
-        for i in range(self.s):
-            assert self.d[i]>=self.c[i],''
+    def method_param_check_(self):
+        for i in range(self.s-1):
+            assert self.d[i]>=self.c[i],f'{self.d[i]},< {self.c[i]}'
         assert len(self.e)==len(self.w),'w and e are vectors for counting intergration tail. they should have the same length.'
-        assert len(self.d)==len(self.s),'d should be the same length as others method vectors = s.'
+        assert len(self.d)==self.s,'d should be the same length as others method vectors = s.'
         
-    def get_solution_VIDE(self, x0:float, x1:float, y0, f, K, h:float, limit=lambda x:0):
-        assert callable(f), "f(x,y)-eq for sol"
+    def get_solution_VIDE(self, x0:float, x1:float, y0, f, K, h:float, limit=None):
+        limit=limit if limit else lambda x:x0
+        assert callable(f), "f(x,y,F)-eq for sol"
         assert callable(K), "K(x,s, y(s))-integration eq for sol"
         assert callable(y0), "y0(t) should retern past"
         assert x0+h<x1, "x0-start of sol, x1-end, h-step. It shouldnt be x0+h>x1"
@@ -266,7 +267,7 @@ class VIDE_RK_method(RK_method):
         def new_y(i, h, teta):
             if(teta==0):return Y[i]
             if(teta==1 and len(Y)-1!=i):return Y[i+1]
-            return Y[i]+h*sum([F[i]*self.b_teta[i](teta) for i in range(4)])
+            return Y[i]+h*sum([F[i][j]*self.b_teta[j](teta) for j in range(4)])
         
         def integration_K(t):
             res = 0
@@ -281,11 +282,15 @@ class VIDE_RK_method(RK_method):
                     res+=h*sum([self.w[j]*K(t, i+h*self.e[j],y0(i+h*self.e[j])) for j in range(len(self.w))])
                 start+=1
             elif limit(t)!=X[start]:
-                h = X[start + 1] - limit(t)
-                res+=h*sum([self.w[j]*K(t, limit(t)+h*self.e[j],new_y(start, h, self.e[j])) for j in range(len(self.w))])
+                h_ = X[start + 1] - limit(t)
+                res+=h_*sum([self.w[j]*K(t, limit(t)+h_*self.e[j],new_y(start, h_, self.e[j])) for j in range(len(self.w))])
                 start+=1
+            
             for i in range(start, end):
                 res+=h*sum([self.w[j]*K(t, X[i]+h*self.e[j],new_y(i, h, self.e[j])) for j in range(len(self.w))])
+                if(m.isnan(res)):
+                    print(sum([self.w[j]*K(t, X[i]+h*self.e[j],new_y(i, h, self.e[j])) for j in range(len(self.w))]))
+            
             return res
         
         def Y_Z_f(h):
@@ -293,6 +298,9 @@ class VIDE_RK_method(RK_method):
             Z_=[]
             F_=[integration_K(X[-1]+self.c[i]*h) for i in range(self.s)]
             for i in range(self.s):
+                for j in range(i):
+                    if(m.isnan(f(X[-1]+self.c[j]*h,Y_[j],F_[j]+Z_[j]))):
+                        print(X[-1]+self.c[j]*h,Y_[j],F_[j], Z_[j])
                 Y_.append(Y[-1]+sum([self.A[i][j]*f(X[-1]+self.c[j]*h,Y_[j],F_[j]+Z_[j]) for j in range(i)]))
                 Z_.append(h*sum([self.A[i][j]*K(X[-1]+self.d[j]*h,X[-1]+self.c[j]*h,Y_[j]) for j in range(i)]))
             f_=[f(X[-1]+self.c[i]*h,Y_[i],F_[i]+Z_[i]) for i in range(self.s)]
@@ -310,4 +318,4 @@ class VIDE_RK_method(RK_method):
             Y.append(new_y(len(F)-1, h, 1))
             X.append(x1)
         return(X,Y) 
-        
+  
