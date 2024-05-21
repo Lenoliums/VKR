@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import sympy as sp
+import math as m
 import types
 
 class RK_method:
@@ -298,9 +299,6 @@ class VIDE_RK_method(RK_method):
             Z_=[]
             F_=[integration_K(X[-1]+self.c[i]*h) for i in range(self.s)]
             for i in range(self.s):
-                for j in range(i):
-                    if(m.isnan(f(X[-1]+self.c[j]*h,Y_[j],F_[j]+Z_[j]))):
-                        print(X[-1]+self.c[j]*h,Y_[j],F_[j], Z_[j])
                 Y_.append(Y[-1]+sum([self.A[i][j]*f(X[-1]+self.c[j]*h,Y_[j],F_[j]+Z_[j]) for j in range(i)]))
                 Z_.append(h*sum([self.A[i][j]*K(X[-1]+self.d[j]*h,X[-1]+self.c[j]*h,Y_[j]) for j in range(i)]))
             f_=[f(X[-1]+self.c[i]*h,Y_[i],F_[i]+Z_[i]) for i in range(self.s)]
