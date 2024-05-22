@@ -276,10 +276,10 @@ class VIDE_RK_method(RK_method):
             end = binarySearch(t, X)
             if start<0:
                 if end<0:
-                    for i in range(limit(t), t, h):
+                    for i in np.arange(limit(t), t, h):
                         res+=h*sum([self.w[j]*K(t, i+h*self.e[j],y0(i+h*self.e[j])) for j in range(len(self.w))])
                     return res
-                for i in range(limit(t), x0, h):
+                for i in np.arange(limit(t), x0, h):
                     res+=h*sum([self.w[j]*K(t, i+h*self.e[j],y0(i+h*self.e[j])) for j in range(len(self.w))])
                 start+=1
             elif limit(t)!=X[start]:
@@ -289,8 +289,6 @@ class VIDE_RK_method(RK_method):
             
             for i in range(start, end):
                 res+=h*sum([self.w[j]*K(t, X[i]+h*self.e[j],new_y(i, h, self.e[j])) for j in range(len(self.w))])
-                if(m.isnan(res)):
-                    print(sum([self.w[j]*K(t, X[i]+h*self.e[j],new_y(i, h, self.e[j])) for j in range(len(self.w))]))
             
             return res
         
@@ -299,7 +297,7 @@ class VIDE_RK_method(RK_method):
             Z_=[]
             F_=[integration_K(X[-1]+self.c[i]*h) for i in range(self.s)]
             for i in range(self.s):
-                Y_.append(Y[-1]+sum([self.A[i][j]*f(X[-1]+self.c[j]*h,Y_[j],F_[j]+Z_[j]) for j in range(i)]))
+                Y_.append(Y[-1]+h*sum([self.A[i][j]*f(X[-1]+self.c[j]*h,Y_[j],F_[j]+Z_[j]) for j in range(i)]))
                 Z_.append(h*sum([self.A[i][j]*K(X[-1]+self.d[j]*h,X[-1]+self.c[j]*h,Y_[j]) for j in range(i)]))
             f_=[f(X[-1]+self.c[i]*h,Y_[i],F_[i]+Z_[i]) for i in range(self.s)]
             return(f_)
@@ -316,4 +314,27 @@ class VIDE_RK_method(RK_method):
             Y.append(new_y(len(F)-1, h, 1))
             X.append(x1)
         return(X,Y) 
+    
+    def get_Graph_Conversation(self, x0:float, x1:float, y0, f, K,y1_true, limit=None, n=None):
+        if callable(y1_true):
+            y1_true=y1_true(x1)
+        n = n if n else self.n
+        Norm = []
+        H = []
+        for k in range(5, 9):
+            h = 1 / (2 ** k)
+            H.append(np.log10(h))
+            X,Y=self.get_solution_VIDE(x0,x1,y0,f,K,h,limit)
+            Norm.append(np.log10(abs(Y[-1]-y1_true)))
+        print('H:', H)
+        print('Norm:', Norm)
+        x = np.linspace(0,0.06,100)
+        y = (Norm[0]) + n*(H-H[0])
+        fig, ax = plt.subplots()
+        ax.plot(H, y, 'r')
+        ax.plot(H, Norm, color='b', linestyle='--')
+        
+        plt.xlabel("log10(Длина шага)")
+        plt.ylabel("log10(Норма погрешности)")
+        return H, Norm
   
